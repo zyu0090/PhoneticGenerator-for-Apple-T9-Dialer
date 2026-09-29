@@ -135,14 +135,14 @@ Give a ⭐️ if this project helped you!
 Copyright © 2024 [@coolmoon327](https://github.com/coolmoon327).<br/>
 This project is [MIT License](https://mit-license.org/)licensed.
 
+## 效果图
+
+![效果图](./sample.PNG)
+
 ## ☕ 请我喝杯咖啡
 
 如果这个项目对你有帮助，欢迎请我喝杯咖啡，感谢支持！
 
-### 效果图
-
-![效果图](./sample.PNG)
-
 ### 赞赏码
 
-<img src="./coffee.JPG" width="200" alt="微信赞赏码" />
+<img src="./coffee.JPG" width="400" alt="微信赞赏码" />
