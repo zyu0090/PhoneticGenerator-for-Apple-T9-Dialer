@@ -39,7 +39,9 @@ PhoneticGenerator 是一个 Python 脚本，旨在从 Apple 的 VCF 联系人文
 
     打开邮件或信息，并下载 vCard 文件。
 
-### 步骤 1.5：强烈建议用 Google/Gmail 通讯录 导入 + 导出 处理一次从 macOS/iOS 的联系人导出 VCF 文件，否则 iCloud 网页端导入会报错
+### 步骤 1.5：强烈建议用 Google/Gmail 通讯录 导入 + 导出 处理一次从 macOS/iOS 的联系人导出 VCF 文件
+
+**否则 iCloud 网页端导入会报错！！！**
 
 ### 步骤 2：运行 iPhoneContactSort 脚本
 
@@ -73,7 +75,9 @@ TEL;type=HOME;type=VOICE;type=pref:9110
 END:VCARD
 ```
 
-### 步骤 2.5：强烈建议分段生成的 VCF 文件，单个 VCF 文件最好不超过 400 个联系人，否则 iCloud 网页端导入会报错
+### 步骤 2.5：强烈建议分段生成的 VCF 文件，单个 VCF 文件最好不超过 400 个联系人
+
+**否则 iCloud 网页端导入会报错！！！**
 
 ### 步骤 3：导入更新后的 VCF 文件
 
