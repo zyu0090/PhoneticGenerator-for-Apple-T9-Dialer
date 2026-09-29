@@ -1,15 +1,15 @@
-PhoneticGenerator for Apple Contacts
+PhoneticGenerator for Apple T9 Dialer
 =========
 
 > 本项目源于 [iPhoneContactSort](https://github.com/SweenEy1130/iPhoneContactSort)，在 python 3+ 下进行适配，修改部分 bug，并增加使用说明。
 
-PhoneticGenerator 是一个 Python 脚本，旨在从 Apple 的 VCF 联系人文件中提取联系人的姓和名，并将它们转换为拼音格式。该脚本将转换后的拼音添加到 X-PHONETIC-LAST-NAME 和 X-PHONETIC-FIRST-NAME 字段中，以便在 iPhone/Mac 上显示联系人名称的拼音，允许在英文系统中对中文通讯录进行排序。
+PhoneticGenerator 是一个 Python 脚本，旨在从 Apple 的 VCF 联系人文件中提取联系人的姓和名，并将它们转换为拼音格式。该脚本将转换后的拼音添加到 NICKNAME 字段中，以便在 iPhone/Mac 上显示联系人名称的拼音，允许T9拨号。
 
 ## 功能
 
 - 给中文通讯录增加拼音标注。
 - 在英文系统下，允许 macOS/iOS 对中文名片进行排序。
-- 使用前瞻版 Apple Intelligence 的用户只能配置 English Siri，本项目允许 Siri 正确访问并识别中文通讯录（测试中）。
+- 电话原生支持 T9 拨号
 
 ## 环境要求
 
@@ -39,6 +39,8 @@ PhoneticGenerator 是一个 Python 脚本，旨在从 Apple 的 VCF 联系人文
 
     打开邮件或信息，并下载 vCard 文件。
 
+### 步骤 1.5：强烈建议用 Google/Gmail 通讯录 导入 + 导出 处理一次从 macOS/iOS 的联系人导出 VCF 文件，否则 iCloud 网页端导入会报错
+
 ### 步骤 2：运行 iPhoneContactSort 脚本
 
 将导出的 *.vcf 文件放在脚本的同一目录下，或者修改传入的文件路径指向正确的位置。
@@ -64,13 +66,14 @@ BEGIN:VCARD
 VERSION:3.0
 PRODID:-//Apple Inc.//macOS 15.2//EN
 N:测;试;;;
-X-PHONETIC-LAST-NAME:Ce
-X-PHONETIC-FIRST-NAME:Shi
+NICKNAME:CeShi
 FN:试 测
 EMAIL;type=INTERNET;type=pref:test@gmail.com
 TEL;type=HOME;type=VOICE;type=pref:9110
 END:VCARD
 ```
+
+### 步骤 2.5：强烈建议分段生成的 VCF 文件，单个 VCF 文件最好不超过 400 个联系人，否则 iCloud 网页端导入会报错
 
 ### 步骤 3：导入更新后的 VCF 文件
 
