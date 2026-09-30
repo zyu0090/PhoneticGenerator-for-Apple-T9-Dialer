@@ -122,7 +122,7 @@ Give a ⭐️ if this project helped you!
 ## 📝 License
 
 Copyright © 2024 [@coolmoon327](https://github.com/coolmoon327).<br/>
-This project is [MIT License] (https://mit-license.org/)licensed.
+This project is [MIT License](https://mit-license.org/) licensed.
 
 ## 效果图
 
