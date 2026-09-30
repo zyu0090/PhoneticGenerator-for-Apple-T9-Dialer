@@ -3,13 +3,13 @@ PhoneticGenerator for Apple T9 Dialer
 
 > 本项目源于 [iPhoneContactSort](https://github.com/SweenEy1130/iPhoneContactSort)，在 python 3+ 下进行适配，修改部分 bug，并增加使用说明。
 
-PhoneticGenerator 是一个 Python 脚本，旨在从 Apple 的 VCF 联系人文件中提取联系人的姓和名，并将它们转换为拼音格式。该脚本将转换后的拼音添加到 NICKNAME 字段中，以便在 iPhone/Mac 上显示联系人名称的拼音，允许T9拨号。
+PhoneticGenerator 是一个 Python 脚本，旨在从 Apple 的 VCF 联系人文件中提取联系人的姓和名，并将它们转换为拼音格式。该脚本将转换后的拼音添加到 NICKNAME 字段中，以便在 iPhone/Mac 上显示联系人名称的拼音，允许 iPhone T9 拨号。
 
 ## 功能
 
 - 给中文通讯录增加拼音标注。
 - 在英文系统下，允许 macOS/iOS 对中文名片进行排序。
-- 电话原生支持 T9 拨号
+- iPhone 电话原生支持 T9 拨号
 
 ## 环境要求
 
@@ -39,9 +39,9 @@ PhoneticGenerator 是一个 Python 脚本，旨在从 Apple 的 VCF 联系人文
 
     打开邮件或信息，并下载 vCard 文件。
 
-### 步骤 1.5：强烈建议用 Google/Gmail 通讯录 导入 + 导出 处理一次从 macOS/iOS 的联系人导出 VCF 文件
+### 步骤 1.5：强烈建议用 Google/Gmail 通讯录 导入 + 导出 处理一次步骤 1 导出的 VCF 文件
 
-**否则 iCloud 网页端导入会报错！！！**
+**否则 iCloud 网页端最终导入可能会报错！！！**
 
 ### 步骤 2：运行 iPhoneContactSort 脚本
 
@@ -61,7 +61,7 @@ python main.py [你的 *.vcf 文件路径]
 
 脚本会读取 *.vcf 文件，提取联系人信息并生成拼音，最后将转换后的结果写回到同一文件中。
 
-运行完成后，原始的 *.vcf 文件会被修改并包含新的 X-PHONETIC-LAST-NAME 和 X-PHONETIC-FIRST-NAME 字段。例如：
+运行完成后，原始的 *.vcf 文件会被修改并包含新的 NICKNAME 字段。例如：
 
 ```
 BEGIN:VCARD
@@ -77,7 +77,7 @@ END:VCARD
 
 ### 步骤 2.5：强烈建议分段生成的 VCF 文件，单个 VCF 文件最好不超过 400 个联系人
 
-**否则 iCloud 网页端导入会报错！！！**
+**否则 iCloud 网页端最终导入可能会报错！！！**
 
 ### 步骤 3：导入更新后的 VCF 文件
 
@@ -97,6 +97,10 @@ END:VCARD
 
     选择 添加到联系人，然后选择要更新的联系人或创建新的联系人。
 
+3. 在 iCloud 网页端导入 VCF 文件：
+
+    可行，但不推荐，容易保存，猜测是网络因素。
+
 ## 注意事项
 
 备份原始文件：在运行脚本之前，建议先备份原始的 VCF 文件，以防止文件损坏或丢失数据。
@@ -105,24 +109,9 @@ END:VCARD
 
 拼音转换准确性：该脚本依赖于[原项目](https://github.com/SweenEy1130/iPhoneContactSort)中编写的 pinyin 库来生成拼音，拼音的准确性可能会受到库本身支持的影响。
 
-## 如何修改部分文字的拼音
+## Original Author / Collaborator
 
-某些多音字对应的拼音有多个，可以通过修改 `word.data` 文件来自定义选择：
-
-1. 在网络上搜索目标多音字的 `UTF-8` 编码，如“茜”字对应“U+831C”；
-2. 在 `word.data` 文件中搜索上述编码中的 16 进制数字，如“831C”，找到：
-```
-831C    QIAN4 QIAN1 XI1
-```
-3. 修改后面拼音的顺序，把目标拼音改到第一个，如修改为“xi”：
-```
-831C    XI1 QIAN4 QIAN1
-```
-4. 保存文件即可
-
-## Author / Collaborator
-
-👤 Author: **coolmoon327** 
+👤 Original Author: **coolmoon327** 
 
 * Github: [@coolmoon327](https://github.com/coolmoon327)
 
