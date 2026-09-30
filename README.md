@@ -9,7 +9,9 @@ PhoneticGenerator 是一个 Python 脚本，旨在从 Apple 的 VCF 联系人文
 
 - 给中文通讯录增加拼音标注。
 - 在英文系统下，允许 macOS/iOS 对中文名片进行排序。
-- iPhone 电话原生支持 T9 拨号
+- iPhone 电话原生支持 T9 拨号。
+
+### 全拼使用 PhoneticGenerator.py，简拼使用 altPhoneticGenerator.py
 
 ## 环境要求
 
