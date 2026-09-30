@@ -63,15 +63,17 @@ python main.py [你的 *.vcf 文件路径]
 
 脚本会读取 *.vcf 文件，提取联系人信息并生成拼音，最后将转换后的结果写回到同一文件中。
 
-运行完成后，原始的 *.vcf 文件会被修改并包含新的 NICKNAME 字段。例如：
+运行完成后，原始的 *.vcf 文件会被修改并包含新的 NICKNAME 字段。
+
+其中，全部姓名字段中 “-” 之前和括号内的文字会被清除，例如：
 
 ```
 BEGIN:VCARD
 VERSION:3.0
 PRODID:-//Apple Inc.//macOS 15.2//EN
-N:测;试;;;
-NICKNAME:CeShi
-FN:试 测
+N:工;作-张三（土豆公司）;;;
+NICKNAME:ZhangSan
+FN:工作-张三（土豆公司）
 EMAIL;type=INTERNET;type=pref:test@gmail.com
 TEL;type=HOME;type=VOICE;type=pref:9110
 END:VCARD
