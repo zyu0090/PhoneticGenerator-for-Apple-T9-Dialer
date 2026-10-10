@@ -1,151 +1,235 @@
-import quopri
 import re
-from pypinyin import Style, pinyin
-
-# 常见中国多音字姓氏映射
-SURNAME_OVERRIDES = {
-    '单': 'shan',
-    '解': 'xie',
-    '查': 'zha',
-    '区': 'ou',
-    '朴': 'piao',
-    '曾': 'zeng',
-    '缪': 'miao',
-    '仇': 'qiu',
-    '秘': 'bi',
-    '冼': 'xian',
-}
+from pinyin import PinYin
 
 
 class PhoneticGenerator:
-    """提取 iOS VCF 联系人姓名，生成拼音与 T9 检索昵称"""
+    """处理 iPhone 联系人 VC 格式的转换，提取拼音并添加到字段中"""
 
-    def __init__(self, filename='contacts.vcf', output_filename='contacts_t9.vcf'):
+    def __init__(self, filename='contacts.vcf'):
+        """
+        初始化 PhoneticConvert 对象
+
+        :param filename: VCF 文件的路径，默认为 'contacts.vcf'
+        """
         self.filename = filename
-        self.output_filename = output_filename
+        self.py_engine = PinYin()
+        self.py_engine.load_word()
 
-    def _decode_vcard_value(self, line_or_value: str) -> str:
-        """解析并解码可能存在的 Quoted-Printable 字符"""
-        if 'ENCODING=QUOTED-PRINTABLE' in line_or_value.upper():
-            # 提取编码内容并还原为 UTF-8
-            raw_val = line_or_value.split(':', 1)[-1].strip()
-            decoded_bytes = quopri.decodestring(raw_val.encode('ascii', errors='ignore'))
-            return decoded_bytes.decode('utf-8', errors='replace')
-        elif ':' in line_or_value:
-            return line_or_value.split(':', 1)[-1].strip()
-        return line_or_value.strip()
+        # 常见多音字姓氏拼音映射（优先匹配复姓，再匹配单姓）
+        self.polyphone_surnames = {
+            '万俟': ['Mo', 'Qi'],
+            '尉迟': ['Yu', 'Chi'],
+            '单': ['Shan'],
+            '仇': ['Qiu'],
+            '解': ['Xie'],
+            '查': ['Zha'],
+            '区': ['Ou'],
+            '朴': ['Piao'],
+            '曾': ['Zeng'],
+            '繁': ['Po'],
+            '乐': ['Yue'],
+            '缪': ['Miao'],
+            '乜': ['Nie'],
+            '盖': ['Ge'],
+            '翟': ['Zhai'],
+            '洗': ['Xian'],
+            '句': ['Gou'],
+            '种': ['Chong'],
+        }
 
-    def _clean_name(self, name: str) -> str:
-        """清洗括号备注与前缀标签"""
-        if not name:
-            return ''
-        name = re.sub(r'[（(【\[].*?[）)】\]]', '', name)
-        if '-' in name:
-            name = name.split('-')[-1]
-        return name.strip()
+    def convert(self):
+        """
+        将 VCF 文件中的联系人姓名转换为拼音，并写入 NICKNAME 字段。
+        如果原 vCard 已有 NICKNAME，则直接替换原有值；否则新增。
+        """
+        contact_lines = self._read_file()
+        updated_contact = []
+        i = 0
+        total = len(contact_lines)
 
-    def _extract_name_parts(self, n_line: str):
-        """准确提取姓与名（兼容转义与编码）"""
-        decoded_val = self._decode_vcard_value(n_line)
-        # 兼容转义分号
-        parts = re.split(r'(?<!\\);', decoded_val)
-        last_name = parts[0].replace(r'\;', ';').strip() if len(parts) > 0 else ''
-        first_name = parts[1].replace(r'\;', ';').strip() if len(parts) > 1 else ''
-        return self._clean_name(last_name), self._clean_name(first_name)
+        while i < total:
+            line = contact_lines[i]
 
-    def _get_phonetic_tokens(self, text: str, is_surname: bool = False):
-        """转换汉字拼音（处理姓氏多音字）"""
-        tokens = []
-        for i, char in enumerate(text):
-            if is_surname and i == 0 and char in SURNAME_OVERRIDES:
-                tokens.append(SURNAME_OVERRIDES[char].capitalize())
+            # 按 vCard 块处理，确保能先知道该联系人是否已有 NICKNAME
+            if line.strip().upper().startswith('BEGIN:VCARD'):
+                block = []
+                while i < total:
+                    block.append(contact_lines[i])
+                    if contact_lines[i].strip().upper().startswith('END:VCARD'):
+                        i += 1
+                        break
+                    i += 1
+                updated_contact.extend(self._process_vcard_block(block))
             else:
-                py_res = pinyin(char, style=Style.NORMAL)
-                if py_res and py_res[0]:
-                    tokens.append(py_res[0][0].capitalize())
-                else:
-                    tokens.append(char)
-        return tokens
+                updated_contact.append(line)
+                i += 1
 
-    def _generate_nickname(self, last_name: str, first_name: str) -> str:
-        """
-        生成适用于 T9 的 NICKNAME：
-        组合为 'ZhangSan ZS'（支持全拼与简拼即时检索）
-        """
-        tokens = []
-        if last_name:
-            tokens.extend(self._get_phonetic_tokens(last_name, is_surname=True))
-        if first_name:
-            tokens.extend(self._get_phonetic_tokens(first_name, is_surname=False))
-
-        if not tokens:
-            return ''
-
-        full_pinyin = ''.join(tokens)
-        initials = ''.join([t[0].upper() for t in tokens if t])
-
-        # 如果全拼和首字母相同（纯英文联系人），只保留一个
-        if full_pinyin.upper() == initials:
-            return full_pinyin
-        return f"{full_pinyin} {initials}"
+        self._write_file(updated_contact)
 
     def _process_vcard_block(self, block_lines):
-        n_idx = None
+        """处理单个 vCard 块：计算拼音，更新或插入 NICKNAME。"""
+        n_index = None
         n_line = None
 
         for idx, line in enumerate(block_lines):
             if re.match(r'^(?:[^:]*\.)?N(?:;[^:]*)?:', line, re.IGNORECASE):
-                n_idx = idx
+                n_index = idx
                 n_line = line
                 break
 
         if n_line is None:
             return block_lines
 
-        last_name, first_name = self._extract_name_parts(n_line)
-        nickname_val = self._generate_nickname(last_name, first_name)
+        last_name = self._extract_name_part(n_line, part='last')
+        first_name = self._extract_name_part(n_line, part='first')
 
-        if not nickname_val:
+        if last_name:
+            last_name = self._clean_name(last_name)
+        if first_name:
+            first_name = self._clean_name(first_name)
+
+        full_name = ''
+        if last_name:
+            full_name += last_name
+        if first_name:
+            full_name += first_name
+
+        if not full_name:
             return block_lines
 
-        # 检查是否已有 NICKNAME 行
-        nickname_idx = None
-        for idx, line in enumerate(block_lines):
-            if re.match(r'^(?:[^:]*\.)?NICKNAME(?:;[^:]*)?:', line, re.IGNORECASE):
-                nickname_idx = idx
-                break
+        phonetic_name = self._convert_to_phonetic(full_name)
+        if not phonetic_name:
+            return block_lines
 
-        newline = '\r\n' if n_line.endswith('\r\n') else '\n'
+        nickname_indexes = [
+            idx for idx, line in enumerate(block_lines)
+            if re.match(r'^(?:[^:]*\.)?NICKNAME(?:;[^:]*)?:', line, re.IGNORECASE)
+        ]
 
-        if nickname_idx is not None:
-            block_lines[nickname_idx] = f"NICKNAME:{nickname_val}{newline}"
-        else:
-            block_lines.insert(n_idx + 1, f"NICKNAME:{nickname_val}{newline}")
+        if nickname_indexes:
+            # 已有 NICKNAME：直接替换原有值，不新增
+            for idx in nickname_indexes:
+                block_lines[idx] = self._replace_nickname_value(
+                    block_lines[idx], phonetic_name
+                )
+            return block_lines
 
+        # 没有 NICKNAME：在 N 行后插入
+        newline = '\n'
+        if n_line.endswith('\r\n'):
+            newline = '\r\n'
+        elif n_line.endswith('\n'):
+            newline = '\n'
+
+        block_lines.insert(n_index + 1, f"NICKNAME:{phonetic_name}{newline}")
         return block_lines
 
-    def convert(self):
-        with open(self.filename, 'r', encoding='utf-8', errors='ignore') as f:
-            lines = f.readlines()
+    def _read_file(self):
+        """读取 VCF 文件并返回文件中的每一行"""
+        with open(self.filename, 'r', encoding='utf-8') as f:
+            return f.readlines()
 
-        updated_lines = []
-        i = 0
-        total = len(lines)
+    def _write_file(self, updated_contact):
+        """将更新后的联系人信息写回到 VCF 文件"""
+        with open(self.filename, 'w', encoding='utf-8') as fout:
+            fout.writelines(updated_contact)
 
-        while i < total:
-            line = lines[i]
-            if line.strip().upper().startswith('BEGIN:VCARD'):
-                block = []
-                while i < total:
-                    block.append(lines[i])
-                    if lines[i].strip().upper().startswith('END:VCARD'):
-                        i += 1
-                        break
-                    i += 1
-                updated_lines.extend(self._process_vcard_block(block))
-            else:
-                updated_lines.append(line)
-                i += 1
+    def _extract_name_part(self, line, part='last'):
+        """
+        从联系人信息中提取姓或名
 
-        with open(self.output_filename, 'w', encoding='utf-8') as f:
-            f.writelines(updated_lines)
+        :param line: VCF 文件中的一行
+        :param part: 提取部分，'last' 为姓，'first' 为名
+        :return: 姓或名，如果未找到则返回 None
+        """
+        if ':' not in line:
+            return None
+
+        value = line.split(':', 1)[1].strip()
+        parts = value.split(';')
+
+        if part == 'last':
+            return parts[0] if parts else None
+        else:
+            return parts[1] if len(parts) > 1 else None
+
+    def _clean_name(self, name):
+        """
+        清洗姓名：
+        1. 去除所有括号（中英文）及其内部内容；
+        2. 去除连字符 '-' 及其之前的所有内容（保留最后一个 '-' 之后的部分）。
+
+        :param name: 原始姓或名字符串
+        :return: 清洗后的字符串
+        """
+        if not name:
+            return name
+
+        name = re.sub(r'[（(【\[].*?[）)】\]]', '', name)
+
+        if '-' in name:
+            name = name.split('-')[-1]
+
+        return name.strip()
+
+    def _replace_nickname_value(self, line, new_value):
+        """替换 NICKNAME 行的值，保留属性名、参数和换行符。"""
+        match = re.match(
+            r'^((?:[^:]*\.)?NICKNAME(?:;[^:]*)?:)(.*?)(\r?\n)?$',
+            line,
+            re.IGNORECASE
+        )
+        if not match:
+            return line
+
+        prefix = match.group(1)
+        newline = match.group(3) or ''
+        return f"{prefix}{new_value}{newline}"
+
+    def _convert_to_phonetic(self, name):
+        """
+        将汉字转换为拼音（含多音字姓氏校正），包含全拼与简拼
+
+        :param name: 姓或名
+        :return: 全拼与简拼组合的字符串，如 "ShanTianFang STF"
+        """
+        if not name:
+            return ""
+
+        matched_surname = None
+        # 按长度降序排列，优先匹配复姓
+        for surname in sorted(self.polyphone_surnames.keys(), key=len, reverse=True):
+            if name.startswith(surname):
+                matched_surname = surname
+                break
+
+        if matched_surname:
+            surname_pinyin = self.polyphone_surnames[matched_surname]
+            remaining_name = name[len(matched_surname):]
+            remaining_pinyin = [
+                item.capitalize()
+                for item in self.py_engine.hanzi2pinyin(remaining_name)
+                if item
+            ] if remaining_name else []
+            pinyin_list = surname_pinyin + remaining_pinyin
+        else:
+            pinyin_list = [
+                item.capitalize()
+                for item in self.py_engine.hanzi2pinyin(name)
+                if item
+            ]
+
+        if not pinyin_list:
+            return ""
+
+        # 全拼（首字母大写）与简拼（全大写缩写）
+        full_pinyin = ''.join(pinyin_list)
+        short_pinyin = ''.join([item[0].upper() for item in pinyin_list if item])
+
+        return f"{full_pinyin} {short_pinyin}"
+
+
+if __name__ == '__main__':
+    filename = 'contacts.vcf'
+    generator = PhoneticGenerator(filename)
+    generator.convert()
