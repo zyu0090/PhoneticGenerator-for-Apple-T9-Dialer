@@ -12,6 +12,7 @@ PhoneticGenerator 是一个 Python 脚本，旨在从 Apple 的 VCF 联系人文
 - iPhone 电话原生支持 T9 拨号。
 
 ### 全拼使用 PhoneticGenerator.py，简拼使用 altPhoneticGenerator.py
+### 全拼 + 简拼使用 betaPhoneticGenerator.py
 
 ## 环境要求
 
